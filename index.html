@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>抽学号</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    min-height: 100vh;
+    background: #f8f9fb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1a1a1a;
+    padding: 20px;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  /* 标题 */
+  .header {
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  .header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .header p {
+    font-size: 13px;
+    color: #888;
+  }
+
+  /* 模式选择 */
+  .mode-bar {
+    display: flex;
+    gap: 8px;
+    background: #fff;
+    padding: 6px;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 10px 0;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .mode-btn.active {
+    background: #1a1a1a;
+    color: #fff;
+  }
+
+  /* 滚动区 */
+  .roller-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  }
+
+  .roller-wrap {
+    position: relative;
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
+    border-radius: 16px;
+    background: #fafbfc;
+  }
+
+  .roller-wrap::before,
+  .roller-wrap::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    width: 80px;
+    height: 100%;
+    z-index: 3;
+    pointer-events: none;
+  }
+  .roller-wrap::before {
+    left: 0;
+    background: linear-gradient(90deg, #fafbfc, transparent);
+  }
+  .roller-wrap::after {
+    right: 0;
+    background: linear-gradient(-90deg, #fafbfc, transparent);
+  }
+
+  .center-line {
+    position: absolute;
+    left: 50%;
+    top: 10px;
+    bottom: 10px;
+    width: 2px;
+    transform: translateX(-50%);
+    background: #1a1a1a;
+    z-index: 4;
+    border-radius: 2px;
+  }
+
+  .track {
+    display: flex;
+    height: 100%;
+    align-items: center;
+    will-change: transform;
+  }
+
+  .num {
+    font-size: 64px;
+    font-weight: 800;
+    color: #222;
+    width: 110px;
+    text-align: center;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .num.highlight {
+    color: #1a1a1a;
+    transform: scale(1.08);
+    transition: all 0.25s ease;
+  }
+
+  /* 结果 */
+  .result-box {
+    margin-top: 18px;
+    text-align: center;
+    min-height: 50px;
+  }
+  .result-label {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 8px;
+  }
+  .result-nums {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .result-nums strong {
+    font-size: 30px;
+    font-weight: 800;
+    color: #1a1a1a;
+  }
+
+  /* 按钮 */
+  .btn-group {
+    display: flex;
+    gap: 12px;
+  }
+  .btn {
+    flex: 1;
+    padding: 16px;
+    border: none;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+  .btn:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  .btn-primary {
+    background: #1a1a1a;
+    color: #fff;
+  }
+  .btn-secondary {
+    background: #fff;
+    color: #1a1a1a;
+    border: 1px solid #e5e7eb;
+  }
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  /* 历史 */
+  .history-card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 16px 18px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  }
+  .history-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .history-head h3 {
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .clear-btn {
+    font-size: 12px;
+    color: #999;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+  .history-list {
+    max-height: 140px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .history-list::-webkit-scrollbar {
+    width: 4px;
+  }
+  .history-list::-webkit-scrollbar-thumb {
+    background: #e5e7eb;
+    border-radius: 2px;
+  }
+  .history-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 9px 10px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+  .history-item:nth-child(odd) {
+    background: #f8f9fb;
+  }
+  .history-num {
+    font-weight: 700;
+  }
+  .history-time {
+    font-size: 12px;
+    color: #999;
+  }
+  .empty {
+    text-align: center;
+    color: #bbb;
+    font-size: 13px;
+    padding: 14px 0;
+  }
+</style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>抽学号</h1>
+      <p>范围 1 - 46 · 跳过 5 号</p>
+    </div>
+
+    <div class="mode-bar">
+      <button class="mode-btn active" data-count="1">单抽</button>
+      <button class="mode-btn" data-count="2">2连</button>
+      <button class="mode-btn" data-count="3">3连</button>
+      <button class="mode-btn" data-count="4">4连</button>
+      <button class="mode-btn" data-count="6">6连</button>
+    </div>
+
+    <div class="roller-card">
+      <div class="roller-wrap">
+        <div class="center-line"></div>
+        <div class="track" id="track"></div>
+      </div>
+
+      <div class="result-box">
+        <div class="result-label" id="resultLabel">等待开始</div>
+        <div class="result-nums" id="result"></div>
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-primary" id="startBtn">开始抽取</button>
+      <button class="btn btn-secondary" id="resetBtn">重置</button>
+    </div>
+
+    <div class="history-card">
+      <div class="history-head">
+        <h3>抽取历史</h3>
+        <button class="clear-btn" id="clearBtn">清空</button>
+      </div>
+      <div class="history-list" id="historyList">
+        <div class="empty">暂无记录</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const track = document.getElementById("track");
+  const result = document.getElementById("result");
+  const resultLabel = document.getElementById("resultLabel");
+  const startBtn = document.getElementById("startBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const clearBtn = document.getElementById("clearBtn");
+  const modeBtns = document.querySelectorAll(".mode-btn");
+  const historyList = document.getElementById("historyList");
+
+  // 号码池
+  const pool = [];
+  for (let i = 1; i <= 46; i++) {
+    if (i !== 5) pool.push(i);
+  }
+
+  let running = false;
+  let rafId = null;
+  let speed = 0;
+  let offset = 0;
+  let currentCount = 1;
+  let results = [];
+  let history = [];
+
+  const ITEM_WIDTH = 110;
+  const CENTER_OFFSET = 240 - ITEM_WIDTH / 2;
+  const stopThreshold = 420;
+  const minStartSpeed = 14;
+  const maxStartSpeed = 38;
+  const trackLength = 180;
+
+  function buildTrack(count) {
+    track.innerHTML = "";
+    for (let i = 0; i < count; i++) {
+      const val = pool[Math.floor(Math.random() * pool.length)];
+      const item = document.createElement("div");
+      item.className = "num";
+      item.textContent = val;
+      track.appendChild(item);
+    }
+  }
+
+  function getOffsetByIndex(index) {
+    return index * ITEM_WIDTH - CENTER_OFFSET;
+  }
+
+  function pickTargetIndex(total) {
+    const min = 20;
+    const max = total - 20;
+    return Math.floor(Math.random() * (max - min)) + min;
+  }
+
+  function showResults() {
+    if (results.length === 0) {
+      resultLabel.textContent = "抽取中...";
+      result.innerHTML = "";
+      return;
+    }
+    resultLabel.textContent = currentCount === 1 ? "本次学号" : "连抽学号";
+    result.innerHTML = results.map(n => `<strong>${n}</strong>`).join("");
+  }
+
+  function addToHistory(num) {
+    const now = new Date();
+    const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    history.unshift({ num, time });
+    if (history.length > 20) history.pop();
+    renderHistory();
+  }
+
+  function renderHistory() {
+    if (history.length === 0) {
+      historyList.innerHTML = `<div class="empty">暂无记录</div>`;
+      return;
+    }
+    historyList.innerHTML = history.map(item => `
+      <div class="history-item">
+        <span>学号</span>
+        <span class="history-num">${item.num}</span>
+        <span class="history-time">${item.time}</span>
+      </div>
+    `).join("");
+  }
+
+  function roll(targetIndex, targetOffset, doneCallback) {
+    if (!running) return;
+
+    speed += 3;
+    offset += speed;
+    track.style.transform = `translateX(${-offset}px)`;
+
+    if (offset >= targetOffset || speed >= stopThreshold) {
+      running = false;
+      cancelAnimationFrame(rafId);
+
+      offset = targetOffset;
+      track.style.transform = `translateX(${-offset}px)`;
+
+      const items = track.querySelectorAll(".num");
+      items.forEach(el => el.classList.remove("highlight"));
+      items[targetIndex].classList.add("highlight");
+
+      const finalNum = Number(items[targetIndex].textContent);
+      results.push(finalNum);
+      showResults();
+      addToHistory(finalNum);
+
+      setTimeout(() => {
+        doneCallback && doneCallback();
+      }, 320);
+      return;
+    }
+
+    rafId = requestAnimationFrame(() => roll(targetIndex, targetOffset, doneCallback));
+  }
+
+  function startSingleRound(doneCallback) {
+    buildTrack(trackLength);
+    offset = 0;
+    track.style.transform = "translateX(0px)";
+    speed = minStartSpeed + Math.random() * (maxStartSpeed - minStartSpeed);
+
+    const targetIdx = pickTargetIndex(trackLength);
+    const targetOff = getOffsetByIndex(targetIdx);
+
+    running = true;
+    rafId = requestAnimationFrame(() => roll(targetIdx, targetOff, doneCallback));
+  }
+
+  function startDraw() {
+    if (running) return;
+    startBtn.disabled = true;
+    results = [];
+    showResults();
+
+    function nextRound(remaining) {
+      if (remaining <= 0) {
+        startBtn.disabled = false;
+        return;
+      }
+      startSingleRound(() => nextRound(remaining - 1));
+    }
+    nextRound(currentCount);
+  }
+
+  function resetDraw() {
+    cancelAnimationFrame(rafId);
+    running = false;
+    speed = 0;
+    offset = 0;
+    track.innerHTML = "";
+    track.style.transform = "translateX(0px)";
+    result.innerHTML = "";
+    resultLabel.textContent = "等待开始";
+    startBtn.disabled = false;
+  }
+
+  // 模式切换
+  modeBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (running) return;
+      modeBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentCount = Number(btn.dataset.count);
+    });
+  });
+
+  startBtn.addEventListener("click", startDraw);
+  resetBtn.addEventListener("click", resetDraw);
+  clearBtn.addEventListener("click", () => {
+    history = [];
+    renderHistory();
+  });
+</script>
+</body>
+</html>
